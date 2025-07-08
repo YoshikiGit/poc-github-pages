@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>コンボボックス連結フォーム</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            background-color: white;
+            transition: border-color 0.3s;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        .create-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-top: 20px;
+        }
+
+        .create-btn:hover {
+            background-color: #45a049;
+        }
+
+        .create-btn:active {
+            transform: translateY(1px);
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e8f5e8;
+            border-radius: 5px;
+            border-left: 4px solid #4CAF50;
+            display: none;
+        }
+
+        .result.show {
+            display: block;
+        }
+
+        .result-text {
+            font-family: monospace;
+            font-size: 14px;
+            word-break: break-all;
+            color: #333;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>コンボボックス連結フォーム</h1>
+        <h2>共通</h2>
+        <div class="form-group" style="display: flex; gap: 20px; align-items: end;">
+            <div>
+                <label for="env">環境</label>
+                <select id="env">
+                    <option value="">選択してください</option>
+                    <option value="local">ローカル</option>
+                    <option value="dev">開発環境</option>
+                    <option value="prd">商用環境</option>
+                </select>
+            </div>
+            <div>
+                <label for="financial_institution">対象金融機関</label>
+                <select id="financial_institution">
+                    <option value="">選択してください</option>
+                    <option value="ao">みずほ銀行</option>
+                    <option value="midori">三井住友銀行</option>
+                    <option value="aka">三菱UFJ銀行</option>
+                </select>
+            </div>
+        </div>
+        <h2>gcloud storage cp</h2>
+        <div class="form-group">
+            <label for="combo2">カテゴリ:</label>
+            <select id="combo2">
+                <option value="">選択してください</option>
+                <option value="01">普通預金</option>
+                <option value="02">定期預金</option>
+                <option value="03">その他</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="combo3">詳細:</label>
+            <select id="combo3">
+                <option value="">まずカテゴリを選択してください</option>
+            </select>
+        </div>
+
+        <button class="create-btn" onclick="createAndCopy()">作成</button>
+
+        <div id="result" class="result">
+            <strong>連結された値がクリップボードにコピーされました:</strong><br>
+            <span id="resultText" class="result-text"></span>
+        </div>
+    </div>
+
+    <script>
+        // コンボボックス3の選択肢を定義
+        const combo3Options = {
+            '01': [
+                { value: 'X1', text: 'レベルX1' },
+                { value: 'Y1', text: 'レベルY1' },
+                { value: 'Z1', text: 'レベルZ1' }
+            ],
+            '02': [
+                { value: 'X2', text: 'レベルX2' },
+                { value: 'Y2', text: 'レベルY2' },
+                { value: 'Z2', text: 'レベルZ2' },
+                { value: 'W2', text: 'レベルW2' }
+            ],
+            '03': [
+                { value: 'A3', text: 'レベルA3' },
+                { value: 'B3', text: 'レベルB3' }
+            ]
+        };
+
+        // コンボボックス2の変更イベントリスナー
+        document.getElementById('combo2').addEventListener('change', function () {
+            const selectedValue = this.value;
+            const combo3 = document.getElementById('combo3');
+
+            // コンボボックス3をクリア
+            combo3.innerHTML = '<option value="">選択してください</option>';
+
+            // 選択された値に応じて選択肢を追加
+            if (selectedValue && combo3Options[selectedValue]) {
+                combo3Options[selectedValue].forEach(option => {
+                    const optionElement = document.createElement('option');
+                    optionElement.value = option.value;
+                    optionElement.textContent = option.text;
+                    combo3.appendChild(optionElement);
+                });
+            } else if (!selectedValue) {
+                // 何も選択されていない場合
+                combo3.innerHTML = '<option value="">まずコンボボックス2を選択してください</option>';
+            }
+        });
+
+        async function createAndCopy() {
+            const env = document.getElementById('env').value;
+            const financial_institution = document.getElementById('financial_institution').value;
+            const combo2 = document.getElementById('combo2').value;
+            const combo3 = document.getElementById('combo3').value;
+
+            // 値が選択されているかチェック
+            if (!env || !financial_institution || !combo2 || !combo3) {
+                alert('すべてのコンボボックスから値を選択してください。');
+                return;
+            }
+
+            // 値を連結
+            const concatenatedValue = "gcloud storage cp --project=" + env + " gs://" + financial_institution + combo2 + combo3;
+
+            try {
+                // クリップボードにコピー
+                await navigator.clipboard.writeText(concatenatedValue);
+
+                // 結果を表示
+                document.getElementById('resultText').textContent = concatenatedValue;
+                document.getElementById('result').classList.add('show');
+
+                // 3秒後に結果を非表示にする
+                setTimeout(() => {
+                    document.getElementById('result').classList.remove('show');
+                }, 3000);
+
+            } catch (err) {
+                // クリップボードAPI が使えない場合の対処
+                console.error('クリップボードへのコピーに失敗しました:', err);
+
+                // フォールバック: テキストを選択可能な状態で表示
+                const textArea = document.createElement('textarea');
+                textArea.value = concatenatedValue;
+                textArea.style.position = 'fixed';
+                textArea.style.opacity = '0';
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+
+                document.getElementById('resultText').textContent = concatenatedValue;
+                document.getElementById('result').classList.add('show');
+
+                setTimeout(() => {
+                    document.getElementById('result').classList.remove('show');
+                }, 3000);
+            }
+        }
+    </script>
+</body>
+
+</html>
